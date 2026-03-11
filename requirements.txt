@@ -1,0 +1,9 @@
+tensorflow>=2.12,<2.17
+numpy>=1.23
+opencv-python>=4.8
+scikit-learn>=1.2
+matplotlib>=3.7
+flask>=3.0
+zxing-cpp>=2.2
+pytesseract>=0.3.10
+pyserial>=3.5

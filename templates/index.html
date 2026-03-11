@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RPi Vision Stream</title>
+  <style>
+    :root {
+      --bg: #f3f7fb;
+      --panel: #ffffff;
+      --border: #d7e4f2;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #cbe4ff;
+      --accent-text: #0f172a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(180deg, #f5f9ff 0%, #eef4fb 100%);
+      color: var(--text);
+    }
+    .wrap { max-width: 1040px; margin: 20px auto; padding: 0 18px; }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    h2 { margin: 0; font-weight: 700; letter-spacing: 0.2px; }
+    .badge {
+      color: var(--accent-text);
+      background: var(--accent);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      border: 1px solid #8fe8d3;
+    }
+    .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-top: 14px; align-items: start; }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      box-shadow: 0 6px 22px rgba(90, 74, 58, 0.08);
+    }
+    img { width: 100%; max-height: 520px; object-fit: contain; border-radius: 12px; display: block; border: 1px solid var(--border); background: #f8fbff; }
+    .status-title {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      color: var(--text);
+    }
+    .status-box {
+      background: #f5f9ff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+    .kv { display: grid; gap: 4px; }
+    .kv .label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+    .kv .value { font-size: 18px; font-weight: 800; color: var(--text); }
+    .kv .value.subtle { font-size: 14px; font-weight: 600; color: var(--muted); }
+    .status-card { margin-top: 0; }
+    @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h2>Bot Design Dashboard</h2>
+      <div class="badge">Live</div>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <img src="/stream.mjpg" alt="Live stream">
+      </div>
+      <div class="card status-card">
+        <h3 class="status-title">Detection Status</h3>
+        <div class="status-box">
+          <div class="kv">
+            <div class="label">Category</div>
+            <div class="value" id="cat">Loading...</div>
+          </div>
+          <div class="kv">
+            <div class="label">Content</div>
+            <div class="value" id="sub">Waiting</div>
+          </div>
+          <div class="kv">
+            <div class="label">Confidence</div>
+            <div class="value subtle" id="conf">-</div>
+          </div>
+          <div class="kv">
+            <div class="label">Run Timer</div>
+            <div class="value subtle" id="timer">0.0s</div>
+          </div>
+          <div class="kv">
+            <div class="label">Detection Window</div>
+            <div class="value subtle" id="window">Waiting</div>
+          </div>
+          <div class="kv">
+            <div class="label">Plate</div>
+            <div class="value subtle" id="plate">-</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function pretty(val, fallback='-') {
+      if (val === null || val === undefined || val === '') return fallback;
+      if (Array.isArray(val)) return val.length ? val.join(' | ') : fallback;
+      return String(val);
+    }
+
+    async function refreshStatus() {
+      try {
+        const r = await fetch('/api/status');
+        const j = await r.json();
+        let cat = pretty(j.coarse_class, 'n/a');
+        let sub = pretty(j.specialized_class, 'n/a');
+        const conf = j.specialized_class ? j.specialized_conf : j.coarse_conf;
+
+        if (j.qr_texts && j.qr_texts.length) {
+          cat = 'QR Code';
+          sub = j.qr_texts.join(' | ');
+        }
+
+        if (cat && typeof cat === 'string') {
+          const norm = cat.toLowerCase().replace(/\s+/g, '_');
+          if (norm.includes('vehicle_number_plate') || norm.includes('vehicle_number_plates')) {
+            sub = pretty(j.plate_text, 'n/a');
+          }
+        }
+
+        document.getElementById('cat').textContent = cat;
+        document.getElementById('sub').textContent = sub;
+        document.getElementById('conf').textContent = pretty(conf, '0.00');
+        document.getElementById('plate').textContent = pretty(j.plate_text, 'n/a');
+        document.getElementById('timer').textContent = pretty(j.run_timer_sec, '0.0') + 's';
+        if (j.detect_active) {
+          document.getElementById('window').textContent = 'Active (' + pretty(j.detect_window_left, '0.0') + 's)';
+        } else {
+          document.getElementById('window').textContent = 'Waiting';
+        }
+      } catch (e) {
+        document.getElementById('cat').textContent = 'Status API unavailable';
+      }
+    }
+    refreshStatus();
+    setInterval(refreshStatus, 350);
+  </script>
+</body>
+</html>
