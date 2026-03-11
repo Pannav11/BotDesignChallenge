@@ -7,3 +7,4 @@ flask>=3.0
 zxing-cpp>=2.2
 pytesseract>=0.3.10
 pyserial>=3.5
+ultralytics
