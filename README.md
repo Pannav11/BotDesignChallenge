@@ -5,7 +5,7 @@ This folder contains everything needed to run the real‑time vision pipeline on
 ## Contents
 
 - `app_rpi_web.py` – main runtime (camera, inference, web UI, optional UART).
-- `infer.py` – TFLite inference utilities.
+- `infer.py` – TFLite inference  utilities.
 - `infer_hierarchical.py` – CLI hierarchical inference.
 - `router.py` – CLI router for specialized models.
 - `model.tflite`, `labels.txt` – coarse classifier.
